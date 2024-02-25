@@ -165,4 +165,3 @@ wandb/
 # Slurm
 slurm/
 submit.py
-
