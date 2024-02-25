@@ -1,4 +1,4 @@
-# Flax Implementation of DreamerV3
+# Flax Implementation of DreamerV3 on Crafter
 
 ## Modifications to the Original Implementation
 
