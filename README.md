@@ -18,7 +18,7 @@ pip install -e .
 
 ## Training
 ```
-python train.py --exp_name [exp_name]
+python train.py --exp_name [exp_name] --seed [seed]
 ```
 
 ## Result
