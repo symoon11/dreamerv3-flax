@@ -16,7 +16,13 @@ pip install -r requirements.txt
 pip install -e .
 ```
 
-## Running the Training Script
+## Training
 ```
 python train.py --exp_name [exp_name]
 ```
+
+## Result
+
+<img src="figures/score.png" width="400">
+
+score (10 seeds): 17.65 ± 2.29
