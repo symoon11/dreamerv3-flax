@@ -1,9 +1,5 @@
 # Flax Implementation of DreamerV3 on Crafter
 
-## TODO
-
-1. Implement Curiosity Replay (https://arxiv.org/abs/2306.15934)
-
 ## Modifications to the Original Implementation
 
 1. Layer normalization: We use the default epsilon value for layer normalization from Flax.
