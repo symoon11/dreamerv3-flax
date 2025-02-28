@@ -10,7 +10,7 @@
 
 ## Installation
 ```
-pip install --upgrade setuptools==65.5.0 wheel==0.38.4
+pip install --upgrade setuptools==65.5.0 wheel==0.38.4 pip==24.0
 pip install -r requirements.txt
 pip install -e .
 ```
