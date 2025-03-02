@@ -1,9 +1,9 @@
 import math
 from typing import Sequence
 
+from chex import Array
 import jax.numpy as jnp
 from flax import nnx
-from jax.typing import ArrayLike
 
 from dreamerv3_flax.flax_util import Conv
 
@@ -39,10 +39,11 @@ class CNNEncoder(nnx.Module):
             )
             self.layers.append(layer)
             in_chan = out_chan
-        self.out_shape = (min_res, min_res, out_chans[-1])
+        self.out_size = min_res * min_res * out_chans[-1]
 
-    def __call__(self, x: ArrayLike) -> ArrayLike:
+    def __call__(self, x: Array) -> Array:
         x = x - 0.5
         for layer in self.layers:
             x = layer(x)
+        x = x.reshape(*x.shape[:-1], self.out_size)
         return x

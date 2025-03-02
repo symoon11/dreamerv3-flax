@@ -1,179 +1,170 @@
 import math
 from functools import partial
 
-import flax.linen as nn
+from flax import nnx
 import jax.numpy as jnp
 from chex import Array, ArrayTree
 from distrax import Independent
-from flax.linen.initializers import zeros_init
 from jax.lax import stop_gradient
 from jax.tree_util import tree_map
 
 from dreamerv3_flax.distribution import Dist, OneHotCategorical
-from dreamerv3_flax.flax_util import Dense
+from dreamerv3_flax.flax_util import Linear
 from dreamerv3_flax.jax_util import where
 
 
-class RSSM(nn.Module):
-    """RSSM module."""
+class RSSM(nnx.Module):
+    def __init__(
+        self,
+        in_size: int,
+        num_actions: int,
+        *,
+        hid_size: int = 1024,
+        deter_size: int = 4096,
+        stoch_size: int = 32,
+        num_classes: int = 32,
+        uniform_mix: float = 0.01,
+        act_type: str = "silu",
+        norm_type: str = "layer",
+        scale: float = 1.0,
+        dtype: jnp.dtype = jnp.bfloat16,
+        rngs: nnx.Rngs
+    ):
+        self.deter_size = deter_size
+        self.stoch_shape = (stoch_size, num_classes)
+        self.uniform_mix = uniform_mix
+        self.rngs = rngs
 
-    hid_size: int = 1024
-    deter_size: int = 4096
-    stoch_size: int = 32
-    num_classes: int = 32
-    uniform_mix: float = 0.01
-    act_type: str = "silu"
-    norm_type: str = "layer"
-
-    def setup(self):
-        """Initializes a RSSM."""
         # State
-        self.deter = self.param("deter", zeros_init(), (self.deter_size,))
-        self.logit_shape = (self.stoch_size, self.num_classes)
+        self.deter = nnx.Param(jnp.zeros((deter_size,)))
 
         # GRU
-        self.gru_x_linear = Dense(
-            3 * self.deter_size,
+        self.gru_x_linear = Linear(
+            hid_size,
+            3 * deter_size,
             act_type="none",
-            norm_type=self.norm_type,
+            norm_type=norm_type,
+            scale=scale,
+            dtype=dtype,
+            rngs=rngs,
         )
-        self.gru_h_linear = Dense(
-            3 * self.deter_size,
+        self.gru_h_linear = Linear(
+            deter_size,
+            3 * deter_size,
             act_type="none",
-            norm_type=self.norm_type,
+            norm_type=norm_type,
+            scale=scale,
+            dtype=dtype,
+            rngs=rngs,
         )
 
         # Imagination
-        self.img_i_dense = Dense(
-            self.hid_size,
-            act_type=self.act_type,
-            norm_type=self.norm_type,
+        self.img_i_dense = Linear(
+            stoch_size + num_actions,
+            hid_size,
+            act_type=act_type,
+            norm_type=norm_type,
+            scale=scale,
+            dtype=dtype,
+            rngs=rngs,
         )
-        self.img_o_dense = Dense(
-            self.hid_size,
-            act_type=self.act_type,
-            norm_type=self.norm_type,
+        self.img_o_dense = Linear(
+            deter_size,
+            hid_size,
+            act_type=act_type,
+            norm_type=norm_type,
+            scale=scale,
+            dtype=dtype,
+            rngs=rngs,
         )
-        self.img_o_linear = Dense(
-            math.prod(self.logit_shape),
+        self.img_o_linear = Linear(
+            hid_size,
+            math.prod(self.stoch_shape),
             act_type="none",
             norm_type="none",
+            scale=scale,
+            dtype=dtype,
+            rngs=rngs,
         )
 
         # Observation
-        self.obs_o_dense = Dense(
-            self.hid_size,
-            act_type=self.act_type,
-            norm_type=self.norm_type,
+        self.obs_o_dense = Linear(
+            deter_size + in_size,
+            hid_size,
+            act_type=act_type,
+            norm_type=norm_type,
+            scale=scale,
+            dtype=dtype,
+            rngs=rngs,
         )
-        self.obs_o_linear = Dense(
-            math.prod(self.logit_shape),
+        self.obs_o_linear = Linear(
+            hid_size,
+            math.prod(self.stoch_shape),
             act_type="none",
             norm_type="none",
+            scale=scale,
+            dtype=dtype,
+            rngs=rngs,
         )
 
     def latent_size(self) -> int:
-        """Returns the latent size."""
-        return self.deter_size + self.stoch_size * self.num_classes
+        return self.deter_size + math.prod(self.stoch_shape)
 
     def initial_state(self, batch_size: int) -> ArrayTree:
-        """Returns the initial RSSM state."""
-        # Get the deterministic representations.
-        deter = self.deter[None].repeat(batch_size, axis=0)
+        deter = self.deter.repeat(batch_size, axis=0)
         deter = jnp.tanh(deter)
-
-        # Cast the deterministic representation to float16.
-        deter = jnp.astype(deter, jnp.float16)
-
-        # Calculate the logit.
+        deter = deter.astype(jnp.bfloat16)
         x = self.img_o_dense(deter)
         logit = self.img_o_linear(x)
-        logit = logit.reshape(*logit.shape[:-1], *self.logit_shape)
-
-        # Sample a stochastic representation.
+        logit = logit.reshape(*logit.shape[:-1], *self.stoch_shape)
         dist = self.get_dist(logit)
         stoch = dist.mode()
-
-        # Cast the stochastic representation to float16.
-        stoch = jnp.astype(stoch, jnp.float16)
-
-        # Define the initial RSSM state.
+        stoch = stoch.astype(jnp.bfloat16)
         state = {"deter": deter, "logit": logit, "stoch": stoch}
-
         return state
 
     def get_dist(self, logit: Array) -> Dist:
-        """Returns the distribution."""
-        # Cast the logit to float32.
-        logit = jnp.astype(logit, jnp.float32)
-
-        # Get the distribution.
+        logit = logit.astype(jnp.float32)
         dist = OneHotCategorical(logit, uniform_mix=self.uniform_mix)
         dist = Independent(dist, reinterpreted_batch_ndims=1)
-
         return dist
 
     def get_latent(self, state: ArrayTree) -> Array:
-        """Calculates the latent representation."""
-        # Get the deterministic and stochastic representations.
         deter = state["deter"]
         stoch = state["stoch"]
-
-        # Concatenate the deterministic and stochastic representations.
-        stoch = jnp.reshape(stoch, (*stoch.shape[:-2], -1))
+        stoch = stoch.reshape(*stoch.shape[:-2], -1)
         latent = jnp.concatenate([deter, stoch], axis=-1)
-
         return latent
 
     def gru(self, deter: Array, x: Array) -> Array:
-        """Runs the forward pass of the GRU."""
-        # Apply the linear layers.
         x = self.gru_x_linear(x)
         h = self.gru_h_linear(deter)
-
-        # Calculate the reset, update, and candidate.
         reset_x, update_x, cand_x = jnp.split(x, 3, axis=-1)
         reset_h, update_h, cand_h = jnp.split(h, 3, axis=-1)
-        reset = nn.sigmoid(reset_x + reset_h)
-        update = nn.sigmoid(update_x + update_h)
-        cand = nn.tanh(cand_x + reset * cand_h)
-
-        # Update the deterministic representation.
+        reset = nnx.sigmoid(reset_x + reset_h)
+        update = nnx.sigmoid(update_x + update_h)
+        cand = nnx.tanh(cand_x + reset * cand_h)
         deter = (1 - update) * cand + update * deter
-
         return deter
 
     def img_step(self, state: ArrayTree, action: Array) -> ArrayTree:
-        """Runs an imagination step."""
-        # Get the deterministic and stochastic representations.
-        deter = state["deter"]
+        # GRU
         stoch = state["stoch"]
-
-        # Cast the action to float16.
-        action = jnp.astype(action, jnp.float16)
-
-        # Concatenate the stochastic representation and action.
         stoch = jnp.reshape(stoch, (*stoch.shape[:-2], -1))
+        action = action.astype(jnp.bfloat16)
         x = jnp.concatenate([stoch, action], axis=-1)
-
-        # Update the deterministic representation.
         x = self.img_i_dense(x)
+        deter = state["deter"]
         deter = self.gru(deter, x)
 
-        # Calculate the logit.
+        # Prior
         x = self.img_o_dense(deter)
         logit = self.img_o_linear(x)
-        logit = jnp.reshape(logit, (*logit.shape[:-1], *self.logit_shape))
-
-        # Sample a stochastic representation.
+        logit = jnp.reshape(logit, (*logit.shape[:-1], *self.stoch_shape))
         dist = self.get_dist(logit)
-        seed = self.make_rng("prior")
+        seed = self.rngs.prior()
         stoch = dist.sample(seed=seed)
-
-        # Cast the stochastic representation to float16.
-        stoch = jnp.astype(stoch, jnp.float16)
-
-        # Define the prior state.
+        stoch = stoch.astype(jnp.bfloat16)
         prior = {"deter": deter, "logit": logit, "stoch": stoch}
 
         return prior
@@ -185,38 +176,27 @@ class RSSM(nn.Module):
         encoded: Array,
         first: Array,
     ) -> ArrayTree:
-        """Runs an observation step."""
-        # Cast the action and first to float16.
-        action = jnp.astype(action, jnp.float16)
-        first = jnp.astype(first, jnp.float16)
-
-        # Mask the state and action.
+        # Masking
+        action = action.astype(jnp.bfloat16)
+        first = first.astype(jnp.bfloat16)
         condition = 1.0 - first
         initial_state = self.initial_state(first.shape[0])
         state = tree_map(partial(where, condition), state, initial_state)
         action = where(condition, action)
 
-        # Run an imagination step.
+        # Imagination
         prior = self.img_step(state, action)
 
-        # Concatenate the deterministic and encoded representations.
+        # Post
         deter = prior["deter"]
         x = jnp.concatenate([deter, encoded], axis=-1)
-
-        # Calculate the logit.
         x = self.obs_o_dense(x)
         logit = self.obs_o_linear(x)
-        logit = jnp.reshape(logit, (*logit.shape[:-1], *self.logit_shape))
-
-        # Sample a stochastic representation.
+        logit = jnp.reshape(logit, (*logit.shape[:-1], *self.stoch_shape))
         dist = self.get_dist(logit)
-        seed = self.make_rng("post")
+        seed = self.rngs.post()
         stoch = dist.sample(seed=seed)
-
-        # Cast the stochastic representation to float16.
-        stoch = jnp.astype(stoch, jnp.float16)
-
-        # Define the posterior state.
+        stoch = stoch.astype(jnp.bfloat16)
         post = {"deter": deter, "logit": logit, "stoch": stoch}
 
         return post, prior

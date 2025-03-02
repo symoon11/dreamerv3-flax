@@ -1,9 +1,9 @@
 from typing import Sequence
 
+from chex import Array
 import jax.numpy as jnp
 from flax import nnx
 from flax.nnx.nn.initializers import variance_scaling
-from jax.typing import ArrayLike
 
 
 class BaseLayer(nnx.Module):
@@ -47,7 +47,7 @@ class BaseLayer(nnx.Module):
         else:
             raise NotImplementedError(act_type)
 
-    def __call__(self, x: ArrayLike) -> ArrayLike:
+    def __call__(self, x: Array) -> Array:
         x = self.layer(x)
         if self.norm:
             x = self.norm(x)

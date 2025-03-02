@@ -1,10 +1,10 @@
 import math
 from typing import Sequence
 
+from chex import Array
 import jax.numpy as jnp
 from distrax import Independent
 from flax import nnx
-from jax.typing import ArrayLike
 
 from dreamerv3_flax.distribution import MSE, Dist
 from dreamerv3_flax.flax_util import ConvTranspose, Linear
@@ -60,15 +60,15 @@ class CNNDecoder(nnx.Module):
             in_chan = out_chan
         self.out_shape = out_shape
 
-    def get_dist(self, loc: ArrayLike) -> Dist:
-        loc = jnp.astype(loc, jnp.float32)
+    def get_dist(self, loc: Array) -> Dist:
+        loc = loc.astype(jnp.float32)
         dist = MSE(loc)
         dist = Independent(dist, reinterpreted_batch_ndims=len(self.out_shape))
         return dist
 
-    def __call__(self, x: ArrayLike) -> Dist:
+    def __call__(self, x: Array) -> Dist:
         x = self.linear(x)
-        x = jnp.reshape(x, (*x.shape[:-1], *self.in_shape))
+        x = x.reshape(*x.shape[:-1], *self.in_shape)
         for layer in self.layers:
             x = layer(x)
         loc = x + 0.5
