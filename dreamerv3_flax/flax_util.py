@@ -1,6 +1,5 @@
 from typing import Sequence
 
-import flax.linen as nn
 import jax.numpy as jnp
 from flax import nnx
 from flax.nnx.nn.initializers import variance_scaling
@@ -11,11 +10,11 @@ class BaseLayer(nnx.Module):
     def __init__(
         self,
         out_size: int,
+        *,
         act_type: str = "silu",
         norm_type: str = "layer",
         scale: float = 1.0,
         dtype: jnp.dtype = jnp.bfloat16,
-        *,
         rngs: nnx.Rngs,
     ):
         # Normalization
@@ -42,9 +41,9 @@ class BaseLayer(nnx.Module):
         if act_type == "none":
             self.act = None
         elif act_type == "silu":
-            self.act = nn.silu
+            self.act = nnx.silu
         elif act_type == "relu":
-            self.act = nn.relu
+            self.act = nnx.relu
         else:
             raise NotImplementedError(act_type)
 
@@ -62,11 +61,11 @@ class Linear(BaseLayer):
         self,
         in_size: int,
         out_size: int,
+        *,
         act_type: str = "silu",
         norm_type: str = "layer",
         scale: float = 1.0,
         dtype: jnp.dtype = jnp.bfloat16,
-        *,
         rngs: nnx.Rngs,
     ):
         super().__init__(
@@ -77,8 +76,6 @@ class Linear(BaseLayer):
             dtype=dtype,
             rngs=rngs,
         )
-
-        # Layer
         self.layer = nnx.Linear(in_size, out_size, **self.layer_kwargs, rngs=rngs)
 
 
@@ -87,13 +84,13 @@ class Conv(BaseLayer):
         self,
         in_size: int,
         out_size: int,
+        *,
         kernel_size: Sequence[int] = (4, 4),
         strides: Sequence[int] = (2, 2),
         act_type: str = "silu",
         norm_type: str = "layer",
         scale: float = 1.0,
         dtype: jnp.dtype = jnp.bfloat16,
-        *,
         rngs: nnx.Rngs,
     ):
         super().__init__(
@@ -104,8 +101,6 @@ class Conv(BaseLayer):
             dtype=dtype,
             rngs=rngs,
         )
-
-        # Layer
         self.layer = nnx.Conv(
             in_size,
             out_size,
@@ -121,13 +116,13 @@ class ConvTranspose(BaseLayer):
         self,
         in_size: int,
         out_size: int,
+        *,
         kernel_size: Sequence[int] = (4, 4),
         strides: Sequence[int] = (2, 2),
         act_type: str = "silu",
         norm_type: str = "layer",
         scale: float = 1.0,
         dtype: jnp.dtype = jnp.bfloat16,
-        *,
         rngs: nnx.Rngs,
     ):
         super().__init__(
@@ -138,8 +133,6 @@ class ConvTranspose(BaseLayer):
             dtype=dtype,
             rngs=rngs,
         )
-
-        # Layer
         self.layer = nnx.ConvTranspose(
             in_size,
             out_size,
