@@ -3,7 +3,7 @@ from typing import Sequence
 import flax.linen as nn
 import jax.numpy as jnp
 from flax import nnx
-from flax.linen.initializers import variance_scaling
+from flax.nnx.nn.initializers import variance_scaling
 from jax.typing import ArrayLike
 
 
