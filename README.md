@@ -1,5 +1,8 @@
 # Flax Implementation of DreamerV3 on Crafter
 
+> [!NOTE]
+> I'm working on migrating from Flax Linen to NNX. Please check out the nnx branch!
+
 ## Modifications to the Original Implementation
 
 1. Layer normalization: We use the default epsilon value for layer normalization from Flax.
