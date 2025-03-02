@@ -1,13 +1,12 @@
 from typing import Tuple
 
-from chex import Array, PRNGKey
 import distrax
 import flax.linen as nn
-from jax.lax import stop_gradient
 import jax.numpy as jnp
+from chex import Array, PRNGKey
+from jax.lax import stop_gradient
 
 from dreamerv3_flax.jax_util import identity, symexp, symlog
-
 
 Dist = distrax.Distribution
 

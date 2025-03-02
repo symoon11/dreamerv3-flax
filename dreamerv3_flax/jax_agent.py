@@ -1,18 +1,17 @@
 from functools import partial
 from typing import Dict, Tuple
 
+import jax
+import jax.numpy as jnp
 from chex import Array, ArrayTree, PRNGKey
 from flax.core.frozen_dict import FrozenDict
 from flax.training.dynamic_scale import DynamicScale
-import jax
-import jax.numpy as jnp
-from jax.tree_util import tree_map
-
 from gym import spaces
+from jax.tree_util import tree_map
 
 from dreamerv3_flax.agent import Agent
 from dreamerv3_flax.env import VecCrafterEnv
-from dreamerv3_flax.optax_util import adam_clip, TrainState
+from dreamerv3_flax.optax_util import TrainState, adam_clip
 
 
 class JAXAgent:

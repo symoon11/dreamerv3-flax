@@ -1,9 +1,7 @@
-from chex import Array, ArrayTree
-import numpy as np
-
 import crafter
+import numpy as np
+from chex import Array, ArrayTree
 from gym.vector import VectorEnvWrapper
-
 
 TASKS = [
     "collect_coal",

@@ -1,5 +1,5 @@
-from chex import Array
 import jax.numpy as jnp
+from chex import Array
 
 
 def identity(x: Array) -> Array:

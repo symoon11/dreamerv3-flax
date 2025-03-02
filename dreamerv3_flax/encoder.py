@@ -1,9 +1,9 @@
 import math
 from typing import Sequence
 
-from chex import Array
-import jax.numpy as jnp
 import flax.linen as nn
+import jax.numpy as jnp
+from chex import Array
 
 from dreamerv3_flax.flax_util import Conv
 

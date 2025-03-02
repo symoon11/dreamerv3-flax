@@ -1,7 +1,7 @@
+import optax
 from chex import ArrayTree
 from flax.training import train_state
 from flax.training.dynamic_scale import DynamicScale
-import optax
 
 
 def adam_clip(lr: float, max_norm: float, **kwargs) -> optax.GradientTransformation:

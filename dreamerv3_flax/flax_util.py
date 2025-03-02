@@ -1,113 +1,150 @@
 from typing import Sequence
 
-from chex import Array
 import flax.linen as nn
-from flax.linen.initializers import variance_scaling
 import jax.numpy as jnp
+from flax import nnx
+from flax.linen.initializers import variance_scaling
+from jax.typing import ArrayLike
 
 
-class BaseLayer(nn.Module):
-    """Base layer module."""
-
-    out_size: int
-    act_type: str = "silu"
-    norm_type: str = "layer"
-    scale: float = 1.0
-
-    def setup(self):
-        """Initializes a layer."""
+class BaseLayer(nnx.Module):
+    def __init__(
+        self,
+        out_size: int,
+        act_type: str = "silu",
+        norm_type: str = "layer",
+        scale: float = 1.0,
+        dtype: jnp.dtype = jnp.bfloat16,
+        *,
+        rngs: nnx.Rngs,
+    ):
         # Normalization
-        if self.norm_type == "none":
+        if norm_type == "none":
             self.norm = None
-        elif self.norm_type == "layer":
-            self.norm = nn.LayerNorm(dtype=jnp.float16)
+        elif norm_type == "layer":
+            self.norm = nnx.LayerNorm(out_size, dtype=dtype, rngs=rngs)
         else:
-            raise NotImplementedError(self.norm_type)
+            raise NotImplementedError(norm_type)
 
         # Layer
         use_bias = self.norm is None
         kernel_init = variance_scaling(
-            self.scale,
-            mode="fan_avg",
-            distribution="truncated_normal",
+            scale, mode="fan_avg", distribution="truncated_normal"
         )
         self.layer = None
         self.layer_kwargs = {
             "use_bias": use_bias,
             "kernel_init": kernel_init,
-            "dtype": jnp.float16,
+            "dtype": dtype,
         }
 
         # Activation
-        if self.act_type == "none":
+        if act_type == "none":
             self.act = None
-        elif self.act_type == "silu":
+        elif act_type == "silu":
             self.act = nn.silu
-        elif self.act_type == "relu":
+        elif act_type == "relu":
             self.act = nn.relu
         else:
-            raise NotImplementedError(self.act_type)
+            raise NotImplementedError(act_type)
 
-    def __call__(self, x: Array) -> Array:
-        """Runs the forward pass of the layer."""
-        # Apply the layer.
+    def __call__(self, x: ArrayLike) -> ArrayLike:
         x = self.layer(x)
-
-        # Apply the normalization.
         if self.norm:
             x = self.norm(x)
-
-        # Apply the activation.
         if self.act:
             x = self.act(x)
-
         return x
 
 
-class Dense(BaseLayer):
-    """Dense layer module."""
-
-    def setup(self):
-        """Initializes a dense layer."""
-        super().setup()
+class Linear(BaseLayer):
+    def __init__(
+        self,
+        in_size: int,
+        out_size: int,
+        act_type: str = "silu",
+        norm_type: str = "layer",
+        scale: float = 1.0,
+        dtype: jnp.dtype = jnp.bfloat16,
+        *,
+        rngs: nnx.Rngs,
+    ):
+        super().__init__(
+            out_size,
+            act_type=act_type,
+            norm_type=norm_type,
+            scale=scale,
+            dtype=dtype,
+            rngs=rngs,
+        )
 
         # Layer
-        self.layer = nn.Dense(self.out_size, **self.layer_kwargs)
+        self.layer = nnx.Linear(in_size, out_size, **self.layer_kwargs, rngs=rngs)
 
 
 class Conv(BaseLayer):
-    """Convolutional layer module."""
-
-    kernel_size: Sequence[int] = (4, 4)
-    strides: Sequence[int] = (2, 2)
-
-    def setup(self):
-        """Initializes a convolutional layer."""
-        super().setup()
+    def __init__(
+        self,
+        in_size: int,
+        out_size: int,
+        kernel_size: Sequence[int] = (4, 4),
+        strides: Sequence[int] = (2, 2),
+        act_type: str = "silu",
+        norm_type: str = "layer",
+        scale: float = 1.0,
+        dtype: jnp.dtype = jnp.bfloat16,
+        *,
+        rngs: nnx.Rngs,
+    ):
+        super().__init__(
+            out_size,
+            act_type=act_type,
+            norm_type=norm_type,
+            scale=scale,
+            dtype=dtype,
+            rngs=rngs,
+        )
 
         # Layer
-        self.layer = nn.Conv(
-            self.out_size,
-            self.kernel_size,
-            strides=self.strides,
+        self.layer = nnx.Conv(
+            in_size,
+            out_size,
+            kernel_size,
+            strides=strides,
             **self.layer_kwargs,
+            rngs=rngs,
         )
 
 
 class ConvTranspose(BaseLayer):
-    """Transposed convolutional layer module."""
-
-    kernel_size: Sequence[int] = (4, 4)
-    strides: Sequence[int] = (2, 2)
-
-    def setup(self):
-        """Initializes a transposed convolutional layer."""
-        super().setup()
+    def __init__(
+        self,
+        in_size: int,
+        out_size: int,
+        kernel_size: Sequence[int] = (4, 4),
+        strides: Sequence[int] = (2, 2),
+        act_type: str = "silu",
+        norm_type: str = "layer",
+        scale: float = 1.0,
+        dtype: jnp.dtype = jnp.bfloat16,
+        *,
+        rngs: nnx.Rngs,
+    ):
+        super().__init__(
+            out_size,
+            act_type=act_type,
+            norm_type=norm_type,
+            scale=scale,
+            dtype=dtype,
+            rngs=rngs,
+        )
 
         # Layer
-        self.layer = nn.ConvTranspose(
-            self.out_size,
-            self.kernel_size,
-            strides=self.strides,
+        self.layer = nnx.ConvTranspose(
+            in_size,
+            out_size,
+            kernel_size,
+            strides=strides,
             **self.layer_kwargs,
+            rngs=rngs,
         )

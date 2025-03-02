@@ -1,13 +1,13 @@
 import argparse
 from functools import partial
 from typing import Dict, Sequence
-import wandb
 
 import numpy as np
+import wandb
 
 from dreamerv3_flax.async_vector_env import AsyncVectorEnv
 from dreamerv3_flax.buffer import ReplayBuffer
-from dreamerv3_flax.env import CrafterEnv, VecCrafterEnv, TASKS
+from dreamerv3_flax.env import TASKS, CrafterEnv, VecCrafterEnv
 from dreamerv3_flax.jax_agent import JAXAgent
 
 

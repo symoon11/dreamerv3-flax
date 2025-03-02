@@ -1,6 +1,5 @@
-from chex import Array, ArrayTree
 import numpy as np
-
+from chex import Array, ArrayTree
 from gym import spaces
 
 from dreamerv3_flax.env import VecCrafterEnv

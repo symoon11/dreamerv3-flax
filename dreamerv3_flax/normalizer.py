@@ -1,6 +1,6 @@
-from chex import Array, ArrayTree
 import flax.linen as nn
 import jax.numpy as jnp
+from chex import Array, ArrayTree
 
 
 class Normalizer(nn.Module):

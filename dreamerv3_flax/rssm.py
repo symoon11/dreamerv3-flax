@@ -1,12 +1,12 @@
-from functools import partial
 import math
+from functools import partial
 
+import flax.linen as nn
+import jax.numpy as jnp
 from chex import Array, ArrayTree
 from distrax import Independent
-import flax.linen as nn
 from flax.linen.initializers import zeros_init
 from jax.lax import stop_gradient
-import jax.numpy as jnp
 from jax.tree_util import tree_map
 
 from dreamerv3_flax.distribution import Dist, OneHotCategorical

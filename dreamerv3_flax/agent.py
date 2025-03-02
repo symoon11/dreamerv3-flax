@@ -1,9 +1,10 @@
 from __future__ import annotations
+
 from typing import Sequence
 
-from chex import Array, ArrayTree
 import flax.linen as nn
 import jax.numpy as jnp
+from chex import Array, ArrayTree
 from jax.tree_util import tree_map
 
 from dreamerv3_flax.policy import Policy

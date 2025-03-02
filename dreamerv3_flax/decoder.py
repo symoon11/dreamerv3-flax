@@ -1,12 +1,12 @@
 import math
 from typing import Sequence
 
-from chex import Array
-from distrax import Independent
 import flax.linen as nn
 import jax.numpy as jnp
+from chex import Array
+from distrax import Independent
 
-from dreamerv3_flax.distribution import Dist, MSE
+from dreamerv3_flax.distribution import MSE, Dist
 from dreamerv3_flax.flax_util import ConvTranspose, Dense
 
 

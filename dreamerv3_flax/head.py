@@ -1,12 +1,12 @@
 import math
 from typing import Sequence
 
-from chex import Array
-from distrax import Bernoulli, Independent
 import flax.linen as nn
 import jax.numpy as jnp
+from chex import Array
+from distrax import Bernoulli, Independent
 
-from dreamerv3_flax.distribution import Discrete, Dist, MSE, OneHotCategorical
+from dreamerv3_flax.distribution import MSE, Discrete, Dist, OneHotCategorical
 from dreamerv3_flax.flax_util import Dense
 from dreamerv3_flax.mlp import MLP
 

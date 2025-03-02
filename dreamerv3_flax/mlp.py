@@ -1,5 +1,5 @@
-from chex import Array
 import flax.linen as nn
+from chex import Array
 
 from dreamerv3_flax.flax_util import Dense
 
