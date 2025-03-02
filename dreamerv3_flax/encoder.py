@@ -1,8 +1,8 @@
 import math
 from typing import Sequence
 
-from chex import Array
 import jax.numpy as jnp
+from chex import Array
 from flax import nnx
 
 from dreamerv3_flax.flax_util import Conv

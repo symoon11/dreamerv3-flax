@@ -1,7 +1,7 @@
 from typing import Sequence
 
-from chex import Array
 import jax.numpy as jnp
+from chex import Array
 from flax import nnx
 from flax.nnx.nn.initializers import variance_scaling
 

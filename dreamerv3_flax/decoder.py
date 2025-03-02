@@ -1,8 +1,8 @@
 import math
 from typing import Sequence
 
-from chex import Array
 import jax.numpy as jnp
+from chex import Array
 from distrax import Independent
 from flax import nnx
 

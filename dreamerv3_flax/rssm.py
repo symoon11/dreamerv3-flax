@@ -1,10 +1,14 @@
+"""
+TODO: Write img_o and obs_o more succinctly
+"""
+
 import math
 from functools import partial
 
-from flax import nnx
 import jax.numpy as jnp
 from chex import Array, ArrayTree
 from distrax import Independent
+from flax import nnx
 from jax.lax import stop_gradient
 from jax.tree_util import tree_map
 
@@ -30,6 +34,7 @@ class RSSM(nnx.Module):
         dtype: jnp.dtype = jnp.bfloat16,
         rngs: nnx.Rngs
     ):
+        # Arguments
         self.deter_size = deter_size
         self.stoch_shape = (stoch_size, num_classes)
         self.uniform_mix = uniform_mix
